@@ -1,0 +1,4 @@
+DEV/
+__pycache__/
+partial_index/
+merged_index.json
