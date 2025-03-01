@@ -41,6 +41,10 @@ Update inverted index to work better
 """
 
 import heapq
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+
+stemmer = PorterStemmer()
 
 # Returns the current document of a given list
 def get_current_document(inv_list: list) -> int:
@@ -102,8 +106,16 @@ def search_from_query(query: str) -> list:
 
 
 if __name__ == '__main__':
-    query = input("Enter query: ")
-    urls = search_from_query(query)
+    # Get original query
+    query_str = word_tokenize(input("Enter query: ").lower())
+    # Get tokens from query
+    query = [token for token in query_str if token.isalnum()]
+    # Add stems to original query
+    stems = [stemmer.stem(token) for token in query if token.isalnum()]
+    terms = query + [token for token in stems if token not in query]
+    # Main search function
+    urls = search_from_query(terms)
+    # Print out urls
     count = 0
     for url in urls:
         count += 1
