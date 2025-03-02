@@ -30,4 +30,4 @@ class Posting:
         return self.id
 
     def __str__(self) -> str:
-        return f"({self.id}, {self.tfidf})"
+        return f"(ID: {self.id}, Score: {self.tfidf})"
