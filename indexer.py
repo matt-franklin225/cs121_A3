@@ -68,10 +68,6 @@ def build_inverted_index(root_folder):
 
 
 if __name__ == "__main__":
-    # root_folder = "DEV"
-    # build_inverted_index(root_folder)
-
-    # root_folder = "/Users/lucasjimenez-suselo/Downloads/DEV"
-    folder = "/Users/lucasjimenez-suselo/CS121Winter2025/Assignment3/pythonProject/cs121_A3/ANALYST"
-    build_inverted_index(folder)
+    root_folder = "DEV"
+    build_inverted_index(root_folder)
     doc_ids.write_to_file("url_ids.json")
