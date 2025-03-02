@@ -43,7 +43,9 @@ Update inverted index to work better
 import heapq
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
+import json
 import ijson
+import os # Remove later???
 
 stemmer = PorterStemmer()
 
@@ -98,11 +100,24 @@ def document_at_a_time_retrieval(query: list) -> list:
     print(results)
     return [entry[1] for entry in heapq.nlargest(5, results)]
 
+def get_urls_from_doc_ids(doc_ids: list) -> list:
+    # This is deeply inefficient but it technically works
+    urls = []
+    count = 0
+    for root_dir, subdirs, files in os.walk("DEV"):
+        for file in files:
+            count += 1
+            if count in doc_ids:
+                with open(f"{root_dir}/{file}", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    url = data.get("url")
+                    urls.append(url)
+    return urls
 
 # Primary search function, returns a list of URLs sorted by relevance
 def search_from_query(query: str) -> list:
-    urls = document_at_a_time_retrieval(query)
-    # urls = ['https://uci.edu/', 'https://uci.edu/academics/index.php', 'https://merage.uci.edu/?utm_source=uciedu&utm_medium=referral', 'https://ics.uci.edu/', 'https://ics.uci.edu/facts-figures/ics-mission-history/']
+    doc_ids = document_at_a_time_retrieval(query)
+    urls = get_urls_from_doc_ids(doc_ids)
     return urls
 
 
@@ -112,8 +127,9 @@ if __name__ == '__main__':
     # Get tokens from query
     query = [token for token in query_str if token.isalnum()]
     # Add stems to original query
-    stems = [stemmer.stem(token) for token in query if token.isalnum()]
-    terms = query + [token for token in stems if token not in query]
+    # stems = [stemmer.stem(token) for token in query if token.isalnum()]
+    # terms = query + [token for token in stems if token not in query]
+    terms = query
     # Main search function
     urls = search_from_query(terms)
     # Print out urls
