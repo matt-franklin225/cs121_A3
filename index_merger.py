@@ -1,55 +1,6 @@
-# import os
-# import json
-
-# def intersect(index1, index2):
-#     try:
-#         iterator = iter(index2)
-#         index2_curr = next(iterator)
-#         for key in index1:
-#             while index2_curr < key:
-#                 index2_curr = next(iterator)
-#             if key == index2_curr:
-#                 index1[key].extend(index2[key])
-#             else:
-#                 index1[index2_curr] = index2[index2_curr]
-
-#     except StopIteration:
-#         return index1
-#     for key in index2:
-#         index1[key] = index2[key]
-#     return index1
-
-# def merge_partial_indexes(root_folder, file_write_name):
-#     inverted_index = {}
-#     count = 0
-#     for dir, subdirs, file_paths in os.walk(root_folder):
-#         for file_path in file_paths:
-#             index_path = os.path.join(dir, file_path)
-#             file = open(index_path, 'r')
-#             new_partial_index = dict(sorted(json.load(file).items()))
-#             file.close()
-#             inverted_index = intersect(inverted_index, new_partial_index)
-
-#             count += 1
-#             print(count)
-#             if(count > 2):
-#                 break
-
-#     with open(file_write_name, 'w') as file:
-#         print("we here")
-#         print(len(inverted_index))
-#         json.dump(inverted_index, file, indent=4)
-#     return inverted_index
-
-
-# if __name__ == '__main__':
-#     root_folder = 'partial_index'
-#     merge_partial_indexes(root_folder, 'inverted_index.json')
-
 import json
 import os
 import heapq
-
 
 
 def merge_partial_indexes(partial_index_files, output_file):
@@ -90,6 +41,7 @@ def merge_partial_indexes(partial_index_files, output_file):
         json.dump(output_buffer, output_handle, indent=4)
 
 
+
 if __name__ == '__main__':
     root_dir = 'partial_index'
     partial_files = []
@@ -98,3 +50,7 @@ if __name__ == '__main__':
             partial_files.append(os.path.join(dir, file))
     output = "merged_index.json"
     merge_partial_indexes(partial_files, output)
+
+    with open("merged_index.json") as f:
+        content = json.load(f)
+        print(len(content.keys()))
