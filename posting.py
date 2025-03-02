@@ -31,3 +31,12 @@ class Posting:
 
     def __str__(self) -> str:
         return f"(ID: {self.id}, Score: {self.tfidf})"
+
+    def __lt__(self, other) -> bool:
+        return self.tfidf < other.tfidf
+
+    def __gt__(self, other) -> bool:
+        return self.tfidf > other.tfidf
+
+    def __eq__(self, other) -> bool:
+        return self.tfidf == other.tfidf
