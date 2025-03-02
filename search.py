@@ -31,10 +31,10 @@ Evaluation criteria
 """
 TODO (for M2):
 Write helper functions for document at a time retrieval function
+- Get inverted list given a token
 - get_current_document
 - go_to_document
 - get_score
-- go_to_next_document
 Update inverted index to work better
 - Add a dictionary that maps doc_ids to urls
 - (if we have time) Update to add tf/idf scores for more precise retrieval
@@ -43,58 +43,59 @@ Update inverted index to work better
 import heapq
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
+import ijson
 
 stemmer = PorterStemmer()
 
-# Returns the current document of a given list
-def get_current_document(inv_list: list) -> int:
-    pass
-
 # Returns next document that contains the inv_list's term, starting at the given doc (returns doc if doc contains the term)
-def go_to_document(inv_list: list, doc: int) -> int:
-    pass
+def go_to_document(inv_list: list, doc: int) -> list:
+    while inv_list[1] and inv_list[1][0][0] < doc:
+        inv_list.pop(0)
+    return inv_list
 
 # Returns the document's score for a given query
 def get_score(query: list, doc: int) -> int:
     pass
 
-# Sends the given list to the next document
-def go_to_next_document(inv_list: list) -> None:
-    pass
-
-def document_at_a_time_retrieval(query: str) -> list:
+def document_at_a_time_retrieval(query: list) -> list:
     inverted_lists = [] # Stores an inverted list for each term in the query
     results = []
-    for term in query:
-        # Final implementation: add the inverted list 
-        # for each term in the query into this array
-        # term_indexes.append(inverted_list(term, inverted_index))
-        inverted_lists.append({}) # Placeholder
+    print(query)
+    with open("partial_index_stemless/p-index0.json", "r") as file:
+        for term, postings in ijson.kvitems(file, ""):
+            if term in query:
+                # result.append((term, len(postings)))
+                inverted_lists.append((term, postings))
     document = -1
 
     # The following section of code is the main loop of the conjunctive processing
     # document at a time retrieval process. The helper functions still have to be written.
-    # while inverted_lists:
-    #     doc_score = 0
-    #     for list in inverted_lists:
-    #         if get_current_document(list) > document: # TODO: write get_current_document
-    #             document = get_current_document(list)
-    #     for list in inverted_lists:
-    #         list.go_to_document(document) # TODO: Write go_to_document, goes to next document that >= {document}
-    #         if get_current_document(list) == document:
-    #             doc_score += get_score(query, document) # TODO: Write get_score
-    #             list.go_to_next_document() # TODO: write go_to_next_document
-    #         else:
-    #             document = -1
-    #             break
-    #     if document > -1:
-    #         results.append(doc_score, document)
+    # Updates the inverted lists by popping elements off the front
+    while inverted_lists:
+        doc_score = 0
+        for list in inverted_lists:
+            if len(list[1]) > 0 and list[1][0][0] > document: # TODO: list[1][0] = get_current_document
+                document = list[1][0][0]
+        for list in inverted_lists:
+            list = go_to_document(list, document) # TODO: Write go_to_document, goes to next document that >= {document}
+            if len(list[1]) == 0 or list[1][0][0] != document:
+                document = -1
+                break
+            else:
+                # doc_score += get_score(query, document) # TODO: Write get_score
+                doc_score += list[1][0][1] # Gets the number of appearances in the given doc
+                list[1].pop(0) # Going to next document
+        if document > -1:
+            results.append((doc_score, document))
+        else:
+            break
 
-    # The following line (commented out) was used to test heapq to make sure it properly returns the top elements
-    results = [(5, 'https://uci.edu/'), (3, 'https://uci.edu/academics/index.php'), (6, 'https://ics.uci.edu/facts-figures/ics-mission-history/'), (1, 'https://ics.uci.edu/'), (2, 'https://merage.uci.edu/?utm_source=uciedu&utm_medium=referral'), (4, 'https://ics.uci.edu/2025/02/06/black-history-month-pioneers-in-science-and-technology/')]
+    # The following line was used to test heapq to make sure it properly returns the top elements
+    # results = [(5, 'https://uci.edu/'), (3, 'https://uci.edu/academics/index.php'), (6, 'https://ics.uci.edu/facts-figures/ics-mission-history/'), (1, 'https://ics.uci.edu/'), (2, 'https://merage.uci.edu/?utm_source=uciedu&utm_medium=referral'), (4, 'https://ics.uci.edu/2025/02/06/black-history-month-pioneers-in-science-and-technology/')]
 
     # Update return later to include more results
     # Currently returns the 5 urls with the highest weight
+    print(results)
     return [entry[1] for entry in heapq.nlargest(5, results)]
 
 
