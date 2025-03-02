@@ -41,6 +41,7 @@ def merge_partial_indexes(partial_index_files, output_file):
         json.dump(output_buffer, output_handle, indent=4)
 
 
+
 if __name__ == '__main__':
     root_dir = 'partial_index'
     partial_files = []
@@ -49,3 +50,7 @@ if __name__ == '__main__':
             partial_files.append(os.path.join(dir, file))
     output = "merged_index.json"
     merge_partial_indexes(partial_files, output)
+
+    with open("merged_index.json") as f:
+        content = json.load(f)
+        print(len(content.keys()))
