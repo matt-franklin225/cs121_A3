@@ -1,4 +1,5 @@
 import math
+import json
 
 class Posting:
     def __init__(self, doc_id: str, url: str):
@@ -40,3 +41,31 @@ class Posting:
 
     def __eq__(self, other) -> bool:
         return self.tfidf == other.tfidf
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "url": self.url,
+            "tf_score": self.tf_score,
+            "tf": self.tf,
+            "tfidf": self.tfidf
+        }
+
+class PostingEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Posting):
+            return obj.to_dict()
+        return super().default(obj)
+
+class PostingDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        if "id" in obj and "url" in obj:  # Check if the object matches a Posting structure
+            posting = Posting(obj["id"], obj["url"])
+            posting.tf_score = obj["tf_score"]
+            posting.tf = obj["tf"]
+            posting.tfidf = obj["tfidf"]
+            return posting
+        return obj  # Otherwise, return as-is (e.g., for normal dicts)

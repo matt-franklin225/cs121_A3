@@ -3,7 +3,7 @@ import json
 from bs4 import BeautifulSoup as BS
 from collections import defaultdict
 import tokenize_and_stem as tokenizer
-from posting import Posting
+from posting import Posting, PostingEncoder, PostingDecoder
 from doc_ids import DocIDs
 
 doc_ids = DocIDs()
@@ -37,7 +37,7 @@ def build_partial_index(file_paths: list, index_file_name: str) -> None:
 
     # Write inverted index to file
     with open(index_file_name, 'w') as file:
-        json.dump(inverted_index, file, indent=4)
+        json.dump(inverted_index, file, indent=4, cls=PostingEncoder)
     inverted_index.clear()
 
 
@@ -51,6 +51,8 @@ def build_inverted_index(root_folder):
     DOCUS_PER_PARTIAL_INDEX = 1000
     for dir, subdirs, files in os.walk(root_folder):
         for file in files:
+            if file == ".DS_Store":
+                continue
             current_doc_id += 1
             # Skip over documents before the starting point (if necessary)
             if current_doc_id < starting_doc:
@@ -68,6 +70,7 @@ def build_inverted_index(root_folder):
 
 
 if __name__ == "__main__":
-    root_folder = "DEV"
+    root_folder = "/Users/lucasjimenez-suselo/Downloads/DEV"
+    # root_folder = "ANALYST"
     build_inverted_index(root_folder)
     doc_ids.write_to_file("url_ids.json")
