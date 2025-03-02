@@ -50,7 +50,7 @@ stemmer = PorterStemmer()
 # Returns next document that contains the inv_list's term, starting at the given doc (returns doc if doc contains the term)
 def go_to_document(inv_list: list, doc: int) -> list:
     while inv_list[1] and inv_list[1][0][0] < doc:
-        inv_list.pop(0)
+        inv_list[1].pop(0)
     return inv_list
 
 # Returns the document's score for a given query
@@ -61,7 +61,7 @@ def document_at_a_time_retrieval(query: list) -> list:
     inverted_lists = [] # Stores an inverted list for each term in the query
     results = []
     print(query)
-    with open("partial_index_stemless/p-index0.json", "r") as file:
+    with open("merged_index.json", "r") as file:
         for term, postings in ijson.kvitems(file, ""):
             if term in query:
                 # result.append((term, len(postings)))
