@@ -48,7 +48,7 @@ def document_at_a_time_retrieval(query: list) -> list:
         if contains_all:
             results.append((doc_score, document))
             for list in inverted_lists:
-                if len(list) > 0:
+                if len(list[1]) > 0:
                     list[1].pop(0)
 
     # Update return later to include more results
