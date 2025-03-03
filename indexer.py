@@ -70,7 +70,6 @@ def build_inverted_index(root_folder):
 
 
 if __name__ == "__main__":
-    root_folder = "/Users/lucasjimenez-suselo/Downloads/DEV"
-    # root_folder = "ANALYST"
+    root_folder = "DEV"
     build_inverted_index(root_folder)
     doc_ids.write_to_file("url_ids.json")

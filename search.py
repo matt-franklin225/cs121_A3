@@ -28,17 +28,6 @@ Evaluation criteria
 • Are the reported URLs plausible?
 """
 
-"""
-TODO (for M2):
-Write helper functions for document at a time retrieval function
-- Get inverted list given a token
-- get_current_document
-- go_to_document
-- get_score
-Update inverted index to work better
-- Add a dictionary that maps doc_ids to urls
-- (if we have time) Update to add tf/idf scores for more precise retrieval
-"""
 
 import heapq
 from nltk.stem import PorterStemmer
@@ -51,7 +40,7 @@ stemmer = PorterStemmer()
 
 # Returns next document that contains the inv_list's term, starting at the given doc (returns doc if doc contains the term)
 def go_to_document(inv_list: list, doc: int) -> list:
-    while inv_list[1] and inv_list[1][0][0] < doc:
+    while inv_list[1] and inv_list[1][0]["id"] < doc:
         inv_list[1].pop(0)
     return inv_list
 
@@ -76,16 +65,16 @@ def document_at_a_time_retrieval(query: list) -> list:
     while inverted_lists:
         doc_score = 0
         for list in inverted_lists:
-            if len(list[1]) > 0 and list[1][0][0] > document: # TODO: list[1][0] = get_current_document
-                document = list[1][0][0]
+            if len(list[1]) > 0 and list[1][0]["id"] > document: # TODO: list[1][0] = get_current_document
+                document = list[1][0]["id"]
         for list in inverted_lists:
             list = go_to_document(list, document) # TODO: Write go_to_document, goes to next document that >= {document}
-            if len(list[1]) == 0 or list[1][0][0] != document:
+            if len(list[1]) == 0 or list[1][0]["id"] != document:
                 document = -1
                 break
             else:
                 # doc_score += get_score(query, document) # TODO: Write get_score
-                doc_score += list[1][0][1] # Gets the number of appearances in the given doc
+                doc_score += list[1][0]["tf_score"] # Gets the tf score for the given doc
                 list[1].pop(0) # Going to next document
         if document > -1:
             results.append((doc_score, document))
@@ -127,11 +116,12 @@ if __name__ == '__main__':
     # Get tokens from query
     query = [token for token in query_str if token.isalnum()]
     # Add stems to original query
-    # stems = [stemmer.stem(token) for token in query if token.isalnum()]
-    # terms = query + [token for token in stems if token not in query]
-    terms = query
+    stems = [stemmer.stem(token) for token in query if token.isalnum()]
+    terms = query + [token for token in stems if token not in query]
+    # terms = query
     # Main search function
-    urls = search_from_query(terms)
+    # urls = search_from_query(terms)
+    urls = search_from_query(stems)
     # Print out urls
     count = 0
     for url in urls:
