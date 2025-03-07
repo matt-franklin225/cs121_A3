@@ -39,7 +39,8 @@ def build_partial_index(file_paths: list, index_file_name: str) -> None:
     # Write partial index to file
     with open(index_file_name, 'w') as file:
         for term, postings in inverted_index.items():
-            postings_str = ' | '.join(f'{p.id},{p.url},{p.tf_score}' for p in postings)
+            # TODO: Perhaps find a better way to separate traits
+            postings_str = ' | '.join(f'{p.id},,{p.url},,{p.tf_score}' for p in postings)
             file.write(f'{term}: {postings_str}\n')
 
     inverted_index.clear()

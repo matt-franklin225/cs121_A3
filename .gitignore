@@ -1,5 +1,7 @@
 DEV/
 __pycache__/
 partial_index/
+partial_index_test/
 partial_index_stemless/
 merged_index.json
+merged_index.txt
