@@ -2,6 +2,7 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from bs4 import BeautifulSoup
 from collections import defaultdict
+from urllib.parse import urlsplit, urlunparse
 
 stemmer = PorterStemmer()
 # Ex: "The cats were chasing mice quickly" -> "The cat were chase mice quickli"
@@ -27,3 +28,9 @@ def calculate_tf(tokens: list) -> dict:
     for token in tokens:
         tf[token] += 1
     return tf
+
+def defragment_url(url: str) -> str:
+    parsed_url = urlsplit(url)
+    clean_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, '', '', ''))
+
+    return clean_url
