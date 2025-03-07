@@ -9,7 +9,7 @@ stemmer = PorterStemmer()
 
 # Returns next document that contains the inv_list's term, starting at the given doc (returns doc if doc contains the term)
 def go_to_document(inv_list: list, doc: int) -> list:
-    while inv_list[1] and inv_list[1][0]["id"] < doc:
+    while inv_list[1] and int(inv_list[1][0][0]) < doc:
         inv_list[1].pop(0)
     return inv_list
 
@@ -21,29 +21,27 @@ def document_at_a_time_retrieval(query: list) -> list:
     inverted_lists = [] # Stores an inverted list for each term in the query
     results = []
     print(query)
-    with open("merged_index.json", "r") as file:
-        for term, postings in ijson.kvitems(file, ""):
-            if term in query:
-                inverted_lists.append((term, postings))
+
+    for term in query:
+        inverted_lists.append((term, binary_search_file("merged_index.txt", term)))
     document = -1
 
     if not inverted_lists or any(len(lst[1]) == 0 for lst in inverted_lists):
         return []
-
     # The following section of code is the main loop of the conjunctive processing
     # document at a time retrieval process. The helper functions still have to be written.
     # Updates the inverted lists by popping elements off the front
     while all(len(lst[1]) > 0 for lst in inverted_lists):
         doc_score = 0
-        document = max(lst[1][0]["id"] for lst in inverted_lists if len(lst[1]) > 0)
+        document = max(int(lst[1][0][0]) for lst in inverted_lists if len(lst[1]) > 0) # lst[1][0][0] is doc_id
         contains_all = True
         for i in range(len(inverted_lists)):
             inverted_lists[i] = go_to_document(inverted_lists[i], document)
-            if len(inverted_lists[i][1]) == 0 or inverted_lists[i][1][0]["id"] != document:
+            if len(inverted_lists[i][1]) == 0 or int(inverted_lists[i][1][0][0]) != document:
                 contains_all = False
                 break
             else:
-                doc_score += inverted_lists[i][1][0]["tf_score"] # Gets the tf score for the given doc
+                doc_score += float(inverted_lists[i][1][0][2]) # Gets the tf score for the given doc
                 inverted_lists[i][1].pop(0) # Going to next document
         if contains_all:
             results.append((doc_score, document))
@@ -52,14 +50,13 @@ def document_at_a_time_retrieval(query: list) -> list:
                     list[1].pop(0)
 
     # Update return later to include more results
-    # Currently returns the 5 urls with the highest weight
-    # print(results)
-    return [entry[1] for entry in heapq.nlargest(5, results)]
+    # Currently returns the 10 urls with the highest weight
+    print(results)
+    return [entry[1] for entry in heapq.nlargest(10, results)]
 
 def get_urls_from_doc_ids(doc_ids: list) -> list:
-    # This is deeply inefficient but it technically works
     urls = []
-    count = 0
+    count = -1
     for root_dir, subdirs, files in os.walk("DEV"):
         for file in files:
             count += 1
@@ -77,6 +74,38 @@ def search_from_query(query: str) -> list:
     return urls
 
 
+def binary_search_file(file_path, query_term):
+    with open(file_path, 'r') as file:
+        file.seek(0, 2)
+        size = file.tell() # endpoint
+        left, right = 0, size
+
+        while left < right:
+            mid = (left + right) // 2 # midpoint
+            file.seek(mid) # Go to midpoint
+
+            file.readline()  # Get line from midpoint
+            pos = file.tell()  # Current position
+            if pos >= size:  # Break if outside range
+                break
+
+            # Read the next line
+            line = file.readline().strip()
+            if not line:
+                break
+
+            term, postings = line.split(": ", 1)
+            
+            if term == query_term:
+                return [posting.split(',,') for posting in postings.split(" | ")]  # Found the term, return postings
+            elif term < query_term:
+                left = pos # Check right half
+            else:
+                right = mid # Check left half
+
+    return []  # Return empty if term not found
+
+
 if __name__ == '__main__':
     # Get original query
     query_str = word_tokenize(input("Enter query: ").lower())
@@ -91,6 +120,9 @@ if __name__ == '__main__':
     urls = search_from_query(stems)
     # Print out urls
     count = 0
-    for url in urls:
-        count += 1
-        print(f"{count}. {url}")
+    if urls:
+        for url in urls:
+            count += 1
+            print(f"{count}. {url}")
+    else:
+        print("No results found--please try a different query.")
