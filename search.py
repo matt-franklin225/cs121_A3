@@ -75,7 +75,35 @@ def search_from_query(query: str) -> list:
 
 
 def binary_search_file(file_path, query_term):
-    pass
+    with open(file_path, 'r') as file:
+        file.seek(0, 2)
+        size = file.tell() # endpoint
+        left, right = 0, size
+
+        while left < right:
+            mid = (left + right) // 2 # midpoint
+            file.seek(mid) # Go to midpoint
+
+            file.readline()  # Get line from midpoint
+            pos = file.tell()  # Current position
+            if pos >= size:  # Break if outside range
+                break
+
+            # Read the next line
+            line = file.readline().strip()
+            if not line:
+                break
+
+            term, postings = line.split(": ", 1)
+            
+            if term == query_term:
+                return [posting.split(',,') for posting in postings.split(" | ")]  # Found the term, return postings
+            elif term < query_term:
+                left = pos # Check right half
+            else:
+                right = mid # Check left half
+
+    return []  # Return empty if term not found
 
 
 if __name__ == '__main__':

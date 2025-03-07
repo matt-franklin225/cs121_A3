@@ -5,3 +5,4 @@ partial_index_test/
 partial_index_stemless/
 merged_index.json
 merged_index.txt
+url_ids.json
