@@ -2,8 +2,8 @@ import heapq
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import json
-import ijson
-import os  # Remove later???
+import time
+import os
 
 
 stemmer = PorterStemmer()
@@ -28,7 +28,6 @@ def document_at_a_time_retrieval(query: list) -> list:
 
     for term in query:
         inverted_lists.append((term, binary_search_file("merged_index.txt", term)))
-    document = -1
 
     if not inverted_lists or any(len(lst[1]) == 0 for lst in inverted_lists):
         return []
@@ -63,20 +62,16 @@ def document_at_a_time_retrieval(query: list) -> list:
 
 def get_urls_from_doc_ids(doc_ids: list) -> list:
     urls = []
-    count = -1
-    for root_dir, subdirs, files in os.walk("DEV"):
-        for file in files:
-            count += 1
-            if count in doc_ids:
-                with open(f"{root_dir}/{file}", "r", encoding = "utf-8") as f:
-                    data = json.load(f)
-                    url = data.get("url")
-                    urls.append(url)
+    with open("url_ids.json", 'r') as file:
+        urls_index = json.load(file)
+        for doc_id in doc_ids:
+            urls.append(urls_index[f"{doc_id}"])
+
     return urls
 
 
 # Primary search function, returns a list of URLs sorted by relevance
-def search_from_query(query: str) -> list:
+def search_from_query(query: list) -> list:
     doc_ids = document_at_a_time_retrieval(query)
     urls = get_urls_from_doc_ids(doc_ids)
     return urls
@@ -115,23 +110,24 @@ def binary_search_file(file_path, query_term):
     return []  # Return empty if term not found
 
 
-if __name__ == '__main__':
-    # Get original query
+def main():
     query_str = word_tokenize(input("Enter query: ").lower())
-    # Get tokens from query
-    query = [token for token in query_str if token.isalnum()]
-    # Add stems to original query
-    stems = [stemmer.stem(token) for token in query if token.isalnum()]
-    terms = query + [token for token in stems if token not in query]
-    # terms = query
-    # Main search function
-    # urls = search_from_query(terms)
+
+    start_time = time.time()
+    stems = [stemmer.stem(token) for token in query_str if token.isalnum()]
+    # terms = query + [token for token in stems if token not in query]
     urls = search_from_query(stems)
+    end_time = time.time()
+
     # Print out urls
-    count = 0
     if urls:
-        for url in urls:
-            count += 1
-            print(f"{count}. {url}")
+        print(f"Found {len(urls)} in {(end_time - start_time) * 1000:.2f} ms")
+        for rank, url in enumerate(urls, start = 1):
+            print(f"{rank}. {url}")
     else:
         print("No results found--please try a different query.")
+
+if __name__ == '__main__':
+    main()
+    # Found 2 in 42.97 ms
+    # Found 2 in 547.85 ms
