@@ -15,7 +15,7 @@ stemmer = PorterStemmer()
 """
 def tokenize_and_stem(soup: BeautifulSoup) -> list:
     tokens = word_tokenize(soup.get_text().lower())
-    stems = [stemmer.stem(token) for token in tokens if token.isalnum()]
+    stems = [stemmer.stem(token) for token in tokens if token.isalnum() and token.isascii()]
     return stems
 
 
