@@ -13,7 +13,7 @@ class Posting:
         self.tfidf = self.tf_score * math.log(total_docs / docs_with_token)
 
     def calculate_tf_score(self, total_words: int, token_frequency: int) -> None:
-        self.tf_score = 1 + math.log(token_frequency / total_words)
+        self.tf_score = token_frequency / total_words
 
     def get_tfidf_score(self) -> int:
         return self.tfidf
