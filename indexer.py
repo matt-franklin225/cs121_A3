@@ -3,14 +3,13 @@ import os
 import json
 from bs4 import BeautifulSoup as BS
 from collections import defaultdict
-from tokenize_and_stem import tokenize_and_stem as tokenizer
-from posting import Posting, PostingEncoder, PostingDecoder
+from tokenize_and_stem import tokenize_and_stem as tokenizer, defragment_url
+from posting import Posting
 from doc_ids import DocIDs
 import index_merger
-# import tfdif
-# from duplicate_detector import hash_content
+import tfdif
+from duplicate_detector import hash_content
 
-doc_ids = DocIDs()
 root_folder = '/Users/lucasjimenez-suselo/Downloads/DEV' #Change to DEV
 target_folder = 'partial_index'
 output_file = 'merged_index.txt'
@@ -20,39 +19,72 @@ doc_ids_file = 'url_ids.json'
 # output_file = 'merged_example.txt'
 # doc_ids_file = 'url_ids_example.json'
 
+
+doc_ids = DocIDs()
+url_set = set()
+content_hash = set()
+
+tag_weights = {
+    'title': 5,
+    'h1': 4,
+    'h2': 3,
+    'strong': 2,
+    'b': 2,
+    'default': 1
+}
+
 def calculate_frequencies(tokens: list) -> dict:
     tf = defaultdict(int)
     for token in tokens:
         tf[token] += 1
     return tf
 
-def parse_json_file(file_path: str) -> dict and str:
+def parse_json_file(file_path: str) -> dict and str and str:
     with open(file_path, 'r', encoding = 'utf-8') as file:
         data = json.load(file)
         url = data.get('url', '')
+        clean_url = defragment_url(url)
+        if clean_url in url_set:
+            return {}, "", str
+        url_set.add(url)
         content = data.get('content', '')
         soup = BS(content, "html.parser")
-        tokens = tokenizer(soup)
-        token_freq = calculate_frequencies(tokens)
 
-        # clean_url = defragment_url(url) #Do we need to defragment urls?
+        weighted_token_freq = defaultdict(int)
+        for tag, weight in tag_weights.items():
+            if tag == 'default':
+                continue
+            for element in soup.find_all(tag): #For important words
+                text = element.get_text()
+                tokens = tokenizer(BS(text, "html.parser"))
+                for token in tokens:
+                    weighted_token_freq[token] += weight
 
-    return token_freq, url, content
+        for element in soup.find_all(): #For regular words
+            if not element.name not in tag_weights:
+                text = element.get_text()
+                tokens = tokenizer(BS(text, "html.parser"))
+                for token in tokens:
+                    weighted_token_freq[token] += tag_weights['default']
+
+    return weighted_token_freq, url, content
 
 def build_partial_index(file_paths: list, index_file_name: str) -> None:
     inverted_index = defaultdict(list)
-    # content_hashes = {} To store hashed version of the content
+    # content_hashes = {} #To store hashed version of the content
 
     # Iterate through the files, tokenizing and getting frequencies for each
     for file_path in file_paths: # doc[0] is the document ID, doc[1] is the file path
         doc_id = file_path[0]
         token_freq, url, content = parse_json_file(file_path[1])
+        if len(token_freq) == 0 and not url:
+            continue
         # content_hash = hash_content(content)
 
         # if content_hash in content_hashes:    #Add this section later
         #     continue
         # content_hashes[content_hash] = doc_id
-        # doc_ids.add(file_path[0], url)
+        doc_ids.add(file_path[0], url)
 
         tokens = token_freq.keys()
         for token in tokens:
@@ -101,8 +133,8 @@ def main(root: str, target: str, output: str, doc_id_file: str) -> None:
     build_inverted_index(root, target)
     doc_ids.write_to_file(doc_id_file)
     index_merger.merge(target_folder, output)
-    # N = int(len(doc_ids.map_of_IDs.keys()))  #To Rewrite the file and swap for tf-idf score
-    # tfdif.main(output, N)
+    N = int(len(doc_ids.map_of_IDs.keys()))  #To Rewrite the file and swap for tf-idf score
+    tfdif.main(output, N)
 
 
 if __name__ == "__main__":
