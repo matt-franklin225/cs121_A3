@@ -4,6 +4,7 @@ from nltk.tokenize import word_tokenize
 import json
 import time
 import os
+from itertools import islice
 
 
 stemmer = PorterStemmer()
@@ -16,48 +17,58 @@ def go_to_document(inv_list: list, doc: int) -> list:
     return inv_list
 
 
-# Returns the document's score for a given query
-def get_score(query: list, doc: int) -> int:
-    pass
+def parse_posting_list(line: str):
+    docs = []
+    term, postings = line.strip().split(": ", 1)  # Split term from postings
+    freq = 0  # Number of docs for the term
+
+    for posting in postings.split(" | "):  # Iterate through postings
+        doc_id, url, tf_score = posting.split(",,")  # Extract components
+        docs.append((int(doc_id), url, float(tf_score)))  # Store in dict
+        freq += 1
+
+    return docs, freq
 
 
 def document_at_a_time_retrieval(query: list) -> list:
-    inverted_lists = []  # Stores an inverted list for each term in the query
-    results = []
+    inverted_lists = {}  # Stores an inverted list for each term in the query
+    doc_freqs = {}  # Map of terms to number of docs it appears in
+    results = {}  # Map of docs to scores
     print(query)
-
+    start_time = time.time()
     for term in query:
-        inverted_lists.append((term, binary_search_file("merged_index.txt", term)))
-
-    if not inverted_lists or any(len(lst[1]) == 0 for lst in inverted_lists):
+        start_time = time.time()
+        term_line = binary_search_file("merged_index.txt", term)  # Main thing slowing us down
+        end_time = time.time()
+        print(f'Binary search time: {(end_time-start_time)*1000} ms')
+        start_time = time.time()
+        posting_list, doc_freq = parse_posting_list(term_line)  # Secondary thing slowing us down
+        end_time = time.time()
+        print(f'Parse posting list time: {(end_time-start_time)*1000} ms')
+        inverted_lists[term] = posting_list
+        doc_freqs[term] = doc_freq
+    doc_freqs = dict(sorted(doc_freqs.items(), key=lambda item: item[1]))
+    if not inverted_lists or any(len(lst) == 0 for lst in inverted_lists):
         return []
-    # The following section of code is the main loop of the conjunctive processing
-    # document at a time retrieval process. The helper functions still have to be written.
-    # Updates the inverted lists by popping elements off the front
-    while all(len(lst[1]) > 0 for lst in inverted_lists):
-        doc_score = 0
-        document = max(int(lst[1][0][0]) for lst in inverted_lists if
-                       len(lst[1]) > 0)  # lst[1][0][0] is doc_id
-        contains_all = True
-        for i in range(len(inverted_lists)):
-            inverted_lists[i] = go_to_document(inverted_lists[i], document)
-            if len(inverted_lists[i][1]) == 0 or int(inverted_lists[i][1][0][0]) != document:
-                contains_all = False
-                break
-            else:
-                doc_score += float(
-                    inverted_lists[i][1][0][2])  # Gets the tf score for the given doc
-                inverted_lists[i][1].pop(0)  # Going to next document
-        if contains_all:
-            results.append((doc_score, document))
-            for list in inverted_lists:
-                if len(list[1]) > 0:
-                    list[1].pop(0)
+    end_time = time.time()
+    print(f'Time for creating inverted lists: {(end_time-start_time)*1000} ms')
 
+    print(doc_freqs)
+
+    # Get the set of doc_ids for each term
+    doc_id_sets = [set(doc_id for doc_id, url, score in postings) for postings in inverted_lists.values()]
+
+    # Find the intersection of all sets (docs containing all terms)
+    valid_doc_ids = set.intersection(*doc_id_sets) if doc_id_sets else set()
+
+    for term, postings in inverted_lists.items():
+        for doc_id, url, score in postings:
+            if doc_id in valid_doc_ids:
+                results[doc_id] = results.get(doc_id, 0) + score
     # Update return later to include more results
     # Currently returns the 10 urls with the highest weight
-    print(results)
-    return [entry[1] for entry in heapq.nlargest(10, results)]
+    results = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
+    return [entry for entry in results][:10]
 
 
 def get_urls_from_doc_ids(doc_ids: list) -> list:
@@ -65,7 +76,7 @@ def get_urls_from_doc_ids(doc_ids: list) -> list:
     with open("url_ids.json", 'r') as file:
         urls_index = json.load(file)
         for doc_id in doc_ids:
-            urls.append(urls_index[f"{doc_id}"])
+            urls.append(urls_index[f"{doc_id+1}"])
 
     return urls
 
@@ -100,14 +111,15 @@ def binary_search_file(file_path, query_term):
             term, postings = line.split(": ", 1)
 
             if term == query_term:
-                return [posting.split(',,') for posting in
-                        postings.split(" | ")]  # Found the term, return postings
+                return line
+                # return [posting.split(',,') for posting in
+                #         postings.split(" | ")]  # Found the term, return postings
             elif term < query_term:
                 left = pos  # Check right half
             else:
                 right = mid  # Check left half
 
-    return []  # Return empty if term not found
+    return ''  # Return empty if term not found
 
 
 def main():
@@ -115,8 +127,7 @@ def main():
 
     start_time = time.time()
     stems = [stemmer.stem(token) for token in query_str if token.isalnum()]
-    # terms = query + [token for token in stems if token not in query]
-    urls = search_from_query(stems)
+    urls = search_from_query(list(set(stems)))
     end_time = time.time()
 
     # Print out urls
@@ -126,6 +137,7 @@ def main():
             print(f"{rank}. {url}")
     else:
         print("No results found--please try a different query.")
+
 
 if __name__ == '__main__':
     main()
