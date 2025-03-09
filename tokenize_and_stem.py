@@ -31,6 +31,6 @@ def calculate_tf(tokens: list) -> dict:
 
 def defragment_url(url: str) -> str:
     parsed_url = urlsplit(url)
-    clean_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, '', '', ''))
+    clean_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, '', parsed_url.query, ''))
 
     return clean_url
