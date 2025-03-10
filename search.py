@@ -61,7 +61,6 @@ def get_results(query: list) -> list:
     if not inverted_lists or any(len(lst) == 0 for lst in inverted_lists):
         return []
     end_time = time.time()
-    print(f'Time for creating inverted lists: {(end_time-start_time)*1000} ms')
 
     print(doc_freqs)
 
@@ -75,8 +74,9 @@ def get_results(query: list) -> list:
         for doc_id, score in postings:
             if doc_id in valid_doc_ids:
                 results[doc_id] = results.get(doc_id, 0) + score
-    # Currently returns the 10 urls with the highest weight
+    print(f'Time for getting results: {(end_time-start_time)*1000} ms')
     results = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
+    # Currently returns the 10 urls with the highest weight
     return [entry for entry in results][:10]
 
 
