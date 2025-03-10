@@ -15,4 +15,6 @@ If running from command line, type "python app.py"
 In the console, it should give you a link to the server. Click on the link and you should be able to 
 run the search program. Enter any desired queries and see the output on your screen.
 
+* Alternatively, to run entirely from the command line, enter "python search.py"
+
 Time to retrieve results pre-GUI and ranking will be seen in the command line.
