@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<h1>Query Result Page</h1>
+    <form action = "/search", method="get">
+        <input type="text" name="query" id="query" placeholder="Enter your query">
+        <button type="submit">Search!</button>
+    </form>
+
+    {% if query %}
+    <h1>the result of the query "{{query}}" is below</h1>
+        {% for result in results %}
+            <li>{{result}}</li>
+
+        {% endfor %}
+    {% endif %}
+{% endblock %}

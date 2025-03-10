@@ -1,17 +1,9 @@
-<!DOCTYPE html>
-<html>
+{% extends 'base.html' %}
 
-<head></head>
-<body>
-
-<input type="text" id="search_query" placeholder="Enter your query">
-<button onclick= search_query_function()>Search!</button>
-
-<h2></h2>
-<b1>Returned URLS</b1>
-<ul id = "urls"></ul>
-
-<script src = "static/search.js"> </script>
-
-</body>
-</html>
+{% block body %}
+<h1> Query Enter Page </h1>
+    <form action = "/search" method="get">
+        <input type="text" name="query" id="query" placeholder="Enter your query">
+        <button type="submit">Search!</button>
+    </form>
+{% endblock %}
