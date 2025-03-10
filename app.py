@@ -22,10 +22,12 @@ def search():
         if results:
             return render_template("result.html", query=query, results=results)
         else:
-            return "No results found--please try a different query."
+            error = "query is invalid, please try again"
+            return render_template("result.html", query=query, results=results, error=error)
     else:
         # print("no query")
-        return "You have not entered a query, please try again."
+        error = "query is invalid, please try again"
+        return render_template("result.html", query=query_str, results=[], error=error)
 
 if __name__ == "__main__":
     app.run(debug=True)

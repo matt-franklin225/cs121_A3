@@ -14,4 +14,9 @@
 
         {% endfor %}
     {% endif %}
+
+{% if error %}
+    <p>Error: {{ error }}</p>
+{% endif %}
+
 {% endblock %}
