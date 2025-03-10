@@ -5,9 +5,21 @@ import json
 import time
 import os
 from itertools import islice
+import re
 
+
+output_file = 'merged_index.txt'
+doc_ids_file = 'url_ids.json'
 
 stemmer = PorterStemmer()
+stop_phrases_regex = re.compile(r'^(how to|what is|why is|who is|where is|when does|can you|can i|when will) ')
+
+
+# Adjusts query to remove duplicates and stop phrases (how to, what is, etc.)
+def fix_query(query_str: list) -> list:
+    query = re.sub(stop_phrases_regex, '', ' '.join(query_str)).split(' ')
+    query = [stemmer.stem(token) for token in query if token.isalnum()]
+    return list(set(query))
 
 
 # Returns next document that contains the inv_list's term, starting at the given doc (returns doc if doc contains the term)
@@ -17,36 +29,34 @@ def go_to_document(inv_list: list, doc: int) -> list:
     return inv_list
 
 
+# Upon being given an inverted index line for a term, will return the relevant document data along with term's doc frequency
 def parse_posting_list(line: str):
     docs = []
     term, postings = line.strip().split(": ", 1)  # Split term from postings
     freq = 0  # Number of docs for the term
-
     for posting in postings.split(" | "):  # Iterate through postings
-        doc_id, url, tf_score = posting.split(",,")  # Extract components
-        docs.append((int(doc_id), url, float(tf_score)))  # Store in dict
+        doc_id, tf_score = posting.split(", ")  # Extract components
+        docs.append((int(doc_id), float(tf_score)))  # Store in dict
         freq += 1
 
     return docs, freq
 
 
-def document_at_a_time_retrieval(query: list) -> list:
+# Main function to get relevant documents
+def get_results(query: list) -> list:
     inverted_lists = {}  # Stores an inverted list for each term in the query
     doc_freqs = {}  # Map of terms to number of docs it appears in
     results = {}  # Map of docs to scores
     print(query)
     start_time = time.time()
     for term in query:
-        start_time = time.time()
-        term_line = binary_search_file("merged_index.txt", term)  # Main thing slowing us down
-        end_time = time.time()
-        print(f'Binary search time: {(end_time-start_time)*1000} ms')
-        start_time = time.time()
-        posting_list, doc_freq = parse_posting_list(term_line)  # Secondary thing slowing us down
-        end_time = time.time()
-        print(f'Parse posting list time: {(end_time-start_time)*1000} ms')
-        inverted_lists[term] = posting_list
-        doc_freqs[term] = doc_freq
+        term_line = binary_search_file(output_file, term)  # Main thing slowing us down
+        if term_line:
+            posting_list, doc_freq = parse_posting_list(term_line)  # Secondary thing slowing us down
+            inverted_lists[term] = posting_list
+            doc_freqs[term] = doc_freq
+        else:
+            return []
     doc_freqs = dict(sorted(doc_freqs.items(), key=lambda item: item[1]))
     if not inverted_lists or any(len(lst) == 0 for lst in inverted_lists):
         return []
@@ -56,16 +66,15 @@ def document_at_a_time_retrieval(query: list) -> list:
     print(doc_freqs)
 
     # Get the set of doc_ids for each term
-    doc_id_sets = [set(doc_id for doc_id, url, score in postings) for postings in inverted_lists.values()]
+    doc_id_sets = [set(doc_id for doc_id, score in postings) for postings in inverted_lists.values()]
 
     # Find the intersection of all sets (docs containing all terms)
     valid_doc_ids = set.intersection(*doc_id_sets) if doc_id_sets else set()
 
     for term, postings in inverted_lists.items():
-        for doc_id, url, score in postings:
+        for doc_id, score in postings:
             if doc_id in valid_doc_ids:
                 results[doc_id] = results.get(doc_id, 0) + score
-    # Update return later to include more results
     # Currently returns the 10 urls with the highest weight
     results = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
     return [entry for entry in results][:10]
@@ -73,23 +82,23 @@ def document_at_a_time_retrieval(query: list) -> list:
 
 def get_urls_from_doc_ids(doc_ids: list) -> list:
     urls = []
-    with open("url_ids.json", 'r') as file:
+    with open(doc_ids_file, 'r', encoding='utf-8') as file:
         urls_index = json.load(file)
         for doc_id in doc_ids:
-            urls.append(urls_index[f"{doc_id+1}"])
+            urls.append(urls_index[f"{doc_id}"])
 
     return urls
 
 
 # Primary search function, returns a list of URLs sorted by relevance
 def search_from_query(query: list) -> list:
-    doc_ids = document_at_a_time_retrieval(query)
+    doc_ids = get_results(query)
     urls = get_urls_from_doc_ids(doc_ids)
     return urls
 
 
 def binary_search_file(file_path, query_term):
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding='utf-8') as file:
         file.seek(0, 2)
         size = file.tell()  # endpoint
         left, right = 0, size
@@ -97,23 +106,19 @@ def binary_search_file(file_path, query_term):
         while left < right:
             mid = (left + right) // 2  # midpoint
             file.seek(mid)  # Go to midpoint
-
             file.readline()  # Get line from midpoint
+            
             pos = file.tell()  # Current position
             if pos >= size:  # Break if outside range
                 break
-
             # Read the next line
             line = file.readline().strip()
             if not line:
                 break
-
+            
             term, postings = line.split(": ", 1)
-
             if term == query_term:
                 return line
-                # return [posting.split(',,') for posting in
-                #         postings.split(" | ")]  # Found the term, return postings
             elif term < query_term:
                 left = pos  # Check right half
             else:
@@ -123,11 +128,15 @@ def binary_search_file(file_path, query_term):
 
 
 def main():
+    # Get query and tokenize it
     query_str = word_tokenize(input("Enter query: ").lower())
 
     start_time = time.time()
-    stems = [stemmer.stem(token) for token in query_str if token.isalnum()]
-    urls = search_from_query(list(set(stems)))
+
+    # Adjust query to remove duplicates and stop phrases (how to, what is, etc.)
+    query = fix_query(query_str)
+    urls = search_from_query(query)
+
     end_time = time.time()
 
     # Print out urls
@@ -137,9 +146,8 @@ def main():
             print(f"{rank}. {url}")
     else:
         print("No results found--please try a different query.")
+        print(f"Terminated query in {(end_time - start_time) * 1000:.2f} ms")
 
 
 if __name__ == '__main__':
     main()
-    # Found 2 in 42.97 ms
-    # Found 2 in 547.85 ms

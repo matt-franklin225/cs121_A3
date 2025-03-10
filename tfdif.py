@@ -15,15 +15,15 @@ def parse_text_file(content: str) -> dict:
         if not line.strip():
             continue
 
-        token, postings = line.split(":", 1)
+        token, postings = line.split(": ", 1)
         token_maps[token.strip()] = []
 
-        doc_entries = postings.split("|")
+        doc_entries = postings.split(" | ")
 
         for entry in doc_entries:
-            doc_id, url, tf_score = map(str.strip, entry.split(",,"))
+            doc_id, tf_score = map(str.strip, entry.split(", "))
             tf_score = float(tf_score)
-            token_maps[token].append((doc_id, url, tf_score))
+            token_maps[token].append((doc_id, tf_score))
     return token_maps
 
 def update_content(content: str, N: int):
@@ -35,8 +35,8 @@ def update_content(content: str, N: int):
         updated_postings = []
         for posting in postings_list:
             dft = len(postings_list)
-            tf_idf_score = calculate_tf_idf(posting[2], dft, N)
-            updated_postings.append(f"{posting[0]},,{posting[1]},,{tf_idf_score}")
+            tf_idf_score = calculate_tf_idf(posting[1], dft, N)
+            updated_postings.append(f"{posting[0]}, {tf_idf_score}")
         updated_lines.append(f"{token}: {' | '.join(updated_postings)}")
     return "\n".join(updated_lines)
 
@@ -59,6 +59,5 @@ if __name__ == "__main__":
     with open(url_id_file, 'r') as file:
         content = json.load(file)
         N = len(content.keys())
-    # N = 55393
 
     main(file_path, N)

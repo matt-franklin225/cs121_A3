@@ -8,9 +8,9 @@ from posting import Posting
 from doc_ids import DocIDs
 import index_merger
 import tfdif
-from duplicate_detector import hash_content
+# from duplicate_detector import hash_content
 
-root_folder = '/Users/lucasjimenez-suselo/Downloads/DEV' #Change to DEV
+root_folder = 'DEV' #Change to DEV
 target_folder = 'partial_index'
 output_file = 'merged_index.txt'
 doc_ids_file = 'url_ids.json'
@@ -19,6 +19,7 @@ doc_ids_file = 'url_ids.json'
 # output_file = 'merged_example.txt'
 # doc_ids_file = 'url_ids_example.json'
 
+import math
 
 doc_ids = DocIDs()
 url_set = set()
@@ -39,7 +40,7 @@ def calculate_frequencies(tokens: list) -> dict:
         tf[token] += 1
     return tf
 
-def parse_json_file(file_path: str) -> dict and str and str:
+def parse_json_file(file_path: str) -> tuple[dict, str, str]:
     with open(file_path, 'r', encoding = 'utf-8') as file:
         data = json.load(file)
         url = data.get('url', '')
@@ -97,8 +98,7 @@ def build_partial_index(file_paths: list, index_file_name: str) -> None:
     # Write inverted index to file
     with open(index_file_name, 'w') as file:
         for term, postings in inverted_index.items():
-            # TODO: Perhaps find a better way to separate traits
-            postings_str = ' | '.join(f'{p.id},,{p.url},,{p.tf_score}' for p in postings)
+            postings_str = ' | '.join(f'{p.id}, {round(p.tf_score * math.log(55393 / len(postings)), 5)}' for p in postings)
             file.write(f'{term}: {postings_str}\n')
     inverted_index.clear()
 
@@ -123,9 +123,12 @@ def build_inverted_index(root_folder: str, target_folder: str):
             # Every 1k documents, build out a new partial index
             if (current_doc_id + 1) % DOCUS_PER_PARTIAL_INDEX == 0:
                 build_partial_index(documents, f'{target_folder}/p-index{current_p_index}.txt')
+                print(f'Built p-index{current_p_index}.txt')
                 current_p_index += 1
                 documents.clear()
-    build_partial_index(documents, f'{target_folder}/p-index{current_p_index}.txt')
+    if documents:
+        build_partial_index(documents, f'{target_folder}/p-index{current_p_index}.txt')
+        print(f'Built p-index{current_p_index}.txt')
     current_p_index += 1
     documents.clear()
 

@@ -1,0 +1,27 @@
+GOOD QUERIES:
+1. iftekhar ahmed
+2. mswe
+3. rebecca black
+4. student organizations
+5. cyber club
+6. academic advising
+7. ics 45c project
+8. rubik's cube
+9. algorithms and data structures
+10. irani courses
+
+DIFFICULT QUERIES:
+1. acm
+2. master of software engineering
+3. business information management
+- These gave us pretty random results initially, but improved upon emphasizing bolded/titled/heading words
+4. how to change my major
+5. can i minor in informatics
+- These queries were greatly improved from no/little results to relevant ones by removing common "stop phrases" at the beginning of the query
+6. a faculty
+7. the research lab
+8. the master of engineering
+- Correctly implementing the tf-idf formula (which originally wasn't properly accounting for idf) removed the undue weight on common words like "a", "the", etc.
+9. computer and software and research and ics
+10. software master computer master engineering master
+- Removing repeated query words greatly improved the time and score accuracy for these queries
